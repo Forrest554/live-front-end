@@ -93,14 +93,16 @@ export default {
           JSON.stringify(chatMessage)
         );
       }
+      this.userStr = "";
     },
     // 收到消息时调用
     onMessageReceived(payload) {
       let message = JSON.parse(payload.body);
-      let str = message.sender + "说:" + message.content;
-      this.allStr.push(str);
-      console.log("onMessageReceived==>", message);
-      this.userStr = "";
+      if (message.content != null) {
+        let str = message.sender + "说:" + message.content;
+        this.allStr.push(str);
+        console.log("onMessageReceived==>", message);
+      }
     },
     // 断开连接
     disconnect() {
