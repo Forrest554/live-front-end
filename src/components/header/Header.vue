@@ -209,6 +209,7 @@ export default {
         } else {
           this.$message.success(res.message);
           this.userInfo = res.data;
+          this.$store.commit('mutationsGetName',res.data.username);
           this.showLogin = false;
           this.isLogin = true;
         }

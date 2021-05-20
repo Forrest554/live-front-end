@@ -12,7 +12,7 @@
 
         <div class="user-input">
           <a-input placeholder="请输入内容" v-model="userStr" />
-          <a-button @click="submitUserStr">提交</a-button>
+          <a-button @click="sendMessage">提交</a-button>
         </div>
 
       </a-drawer>
@@ -21,55 +21,112 @@
 </template>
 
 <script>
+import SockJS from "sockjs-client";
+import Stomp from "stompjs";
 import Video from "@/components/live/Video.vue";
-import { _getAllMessage, _sendMessage } from "@/api/discuss.js";
+// import { _getAllMessage, _sendMessage } from "@/api/discuss.js";
 export default {
   data() {
     return {
       visible: false,
       userStr: "",
       allStr: [],
+      socket: null,
+      stompClient: null,
+      username: "",
     };
   },
   methods: {
     showDrawer() {
       this.visible = true;
-      window.setInterval(() => {
-        setTimeout(this.getMessage(), 0);
-      }, 3000);
     },
     onClose() {
       this.visible = false;
     },
-    submitUserStr() {
-      let data = {
-        message: this.userStr,
-        queueName: "jim",
-      };
-      _sendMessage(data).then((res) => {
-        if (res.message === "success") {
-          this.$message.success("发送成功");
-        } else {
-          this.$message.error("发送失败");
+    initWebSocket() {
+      this.connection();
+      let self = this;
+      // 断开重连机制,尝试发送消息,捕获异常发生时重连
+      this.timer = setInterval(() => {
+        try {
+          self.stompClient.send("test");
+        } catch (err) {
+          console.log("断线了: " + err);
+          self.connection();
         }
+      }, 5000);
+    },
+    connection() {
+      // 建立连接对象
+      this.socket = new SockJS("http://118.178.16.192/ws");
+      // 获取STOMP子协议的客户端对象
+      this.stompClient = Stomp.over(this.socket);
+      // 向服务器发起websocket连接
+      this.stompClient.connect({}, this.onConnected, (err) => {
+        // 连接发生错误时的处理函数
+        console.log(err);
       });
+    },
+    // 连接成功
+    onConnected() {
+      //订阅/topic/public，有消息时调用回调
+      this.stompClient.subscribe("/topic/public", this.onMessageReceived);
+      //加入用户
+      this.stompClient.send(
+        "/app/chat.addUser",
+        {},
+        JSON.stringify({ sender: this.username, type: "JOIN" })
+      );
+    },
+    // 发送聊天消息
+    sendMessage() {
+      let messageContent = this.userStr;
+      if (messageContent && this.stompClient) {
+        let chatMessage = {
+          sender: this.username,
+          content: messageContent,
+          type: "CHAT",
+        };
+        this.stompClient.send(
+          "/app/chat.sendMessage",
+          {},
+          JSON.stringify(chatMessage)
+        );
+      }
+    },
+    // 收到消息时调用
+    onMessageReceived(payload) {
+      let message = JSON.parse(payload.body);
+      let str = message.sender + "说:" + message.content;
+      this.allStr.push(str);
+      console.log("onMessageReceived==>", message);
       this.userStr = "";
     },
-    getMessage() {
-      let data = {
-        queueName: "jim",
-      };
-      _getAllMessage(data).then((res) => {
-        if (res.data.length !== 0) {
-          this.allStr = this.allStr.concat(res.data);
-        }
-      });
+    // 断开连接
+    disconnect() {
+      if (this.stompClient != null) {
+        this.stompClient.disconnect();
+        console.log("Disconnected");
+      }
     },
   },
   components: {
     Video,
   },
+  beforeDestroy() {
+    // 页面离开时断开连接,清除定时器
+    this.disconnect();
+  },
   created() {},
+  mounted() {
+    if (this.$store.state.username != "") {
+      this.username = this.$store.state.username;
+    } else {
+      this.username = "匿名用户";
+    }
+    console.log(this.username);
+    this.initWebSocket();
+  },
 };
 </script>
 

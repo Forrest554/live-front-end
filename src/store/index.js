@@ -3,9 +3,17 @@ import Vuex from "vuex";
 
 Vue.use(Vuex);
 
+
+
 export default new Vuex.Store({
-  state: {},
-  mutations: {},
+  state: {
+    username: ""
+  },
+  mutations: {
+    mutationsGetName(state, value) {
+      return (state.username = value)
+    },
+  },
   actions: {},
   modules: {},
 });
