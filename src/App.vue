@@ -1,32 +1,57 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view />
+    <a-layout>
+      <a-layout-header>
+        <Header></Header>
+      </a-layout-header>
+      <a-layout-content>
+        <router-view />
+      </a-layout-content>
+      <a-layout-footer>
+        <Footer></Footer>
+      </a-layout-footer>
+    </a-layout>
   </div>
 </template>
 
-<style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+<script>
+import Footer from "@/components/footer/Footer.vue";
+import Header from "@/components/header/Header.vue";
+// import Live from "@/components/live/Live.vue";
+import {userLogin} from "@/api/user.js"
+export default {
+  components: {
+    Footer,
+    Header,
+    // Live,
+  },
+  methods: {
+    testAPI() {
+      console.log("it is test");
+      let data = {}
+      userLogin(data).then(
+        res=>{
+          console.log(res)
+        }
+      )
+    },
+  },
+};
+</script>
+<style>
+#app .ant-layout-header {
+  background-color: #fff;
+  height: 80px;
 }
 
-#nav {
-  padding: 30px;
-
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-
-    &.router-link-exact-active {
-      color: #42b983;
-    }
-  }
+#app .ant-layout-content {
+  margin-top: 40px;
+  /* background-color: green; */
+  /* height: 1100px; */
+}
+#app .ant-layout-footer {
+  height: 140px;
 }
 </style>
+
+
